@@ -2,7 +2,7 @@
 
 use crate::{
     core::{BreakpointCause, RegisterValue},
-    memory_mapped_bitfield_register, CoreStatus, HaltReason, SemihostingCommand,
+    memory_mapped_bitfield_register, CoreStatus, HaltReason,
 };
 
 pub mod armv6m;
@@ -135,9 +135,6 @@ pub struct CortexMState {
     current_state: CoreStatus,
 
     fp_present: bool,
-
-    /// The semihosting command that was decoded at the current program counter
-    semihosting_command: Option<SemihostingCommand>,
 }
 
 impl CortexMState {
@@ -147,7 +144,6 @@ impl CortexMState {
             hw_breakpoints_enabled: false,
             current_state: CoreStatus::Unknown,
             fp_present: false,
-            semihosting_command: None,
         }
     }
 

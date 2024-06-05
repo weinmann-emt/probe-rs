@@ -19,7 +19,7 @@ use crate::{
     error::Error,
     memory::valid_32bit_address,
     probe::DebugProbeError,
-    BreakpointCause, CoreRegister, CoreType, InstructionSet, MemoryInterface,
+    CoreRegister, CoreType, InstructionSet, MemoryInterface,
 };
 use anyhow::{anyhow, Result};
 use bitfield::bitfield;
@@ -719,14 +719,7 @@ impl<'probe> CoreInterface for Armv7m<'probe> {
             self.set_core_status(CoreStatus::Halted(reason));
 
             if let HaltReason::Breakpoint(_) = reason {
-                self.state.semihosting_command = super::cortex_m::check_for_semihosting(
-                    self.state.semihosting_command.take(),
-                    self,
-                )?;
-                if let Some(command) = self.state.semihosting_command {
-                    reason = HaltReason::Breakpoint(BreakpointCause::Semihosting(command));
-                }
-
+                reason = super::cortex_m::check_for_semihosting(reason, self)?;
                 // Set it again if it's changed
                 self.set_core_status(CoreStatus::Halted(reason));
             }
@@ -796,8 +789,6 @@ impl<'probe> CoreInterface for Armv7m<'probe> {
     }
 
     fn reset(&mut self) -> Result<(), Error> {
-        self.state.semihosting_command = None;
-
         self.sequence
             .reset_system(&mut *self.memory, crate::CoreType::Armv7m, None)?;
         Ok(())
@@ -833,8 +824,6 @@ impl<'probe> CoreInterface for Armv7m<'probe> {
     }
 
     fn step(&mut self) -> Result<CoreInformation, Error> {
-        self.state.semihosting_command = None;
-
         // First check if we stopped on a breakpoint, because this requires special handling before we can continue.
         let breakpoint_at_pc = if matches!(
             self.state.current_state,
